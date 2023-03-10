@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet,ScrollView, Text, View, FlatList, LogBox, Image } from 'react-native';
+import { StyleSheet, ScrollView, Text, View, FlatList, LogBox, Image } from 'react-native';
 import firebase from 'firebase/compat/app';
 import { getDatabase, ref, onValue, set } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
@@ -34,16 +34,27 @@ function dbListener(path, setData) {
 }
 
 
-function renderCorona({ item }) {
+function renderCorona(item, index, setItem) {
   var icon = <Image style={{ width: 30, height: 20 }} source={{ uri: `https://covid19.who.int/countryFlags/${item.code}.png` }} />
   var desc = <View>
     <Text>{"ผู้ป่วยสะสม " + item.confirmed + " ราย"}</Text>
     <Text>{"เสียชีวิต " + item.death + " ราย"}</Text>
-    <Text>{"ฉีดวัคซีนต่อประชากร 100 คน : " + item.vaccine + "%"}</Text>
+    <Text>{"รักษาหาย " + item.cure + " ราย"}</Text>
   </View>;
-  //return <View><Text>ประเทศ {item.name} มีผู้ป่วย {item.confirmed} ราย</Text></View>
-  return <List.Item title={item.name} description={desc} left={(props => icon)}></List.Item>
+  return <List.Item onPress={() => setItem(item)} title={item.name} description={desc} left={(props => icon)}></List.Item>
 }
+
+
+
+function Detail(props) {
+
+  return <View>
+    <Text>{JSON.stringify(props.item)}</Text>
+    <Button onPress={() => props.setItem(null)}>
+      Back
+    </Button>
+  </View>
+};
 
 
 
@@ -56,7 +67,7 @@ function Loading() {
 export default function App() {
   const [corona, setCorona] = React.useState([]);
   const [user, setUser] = React.useState(null);
-
+  const [citem, setCitem] = React.useState(null);
   React.useEffect(() => {
     var auth = getAuth();
     auth.onAuthStateChanged(function (us) {
@@ -65,12 +76,15 @@ export default function App() {
     dbListener("/corona", setCorona);
     console.log(corona)
   }, []);
+  if (citem != null) {
+    return <Detail item={citem} setItem={setCitem} />;
+  }
 
   if (corona.length == 0) {
     return <Loading />;
   }
-  if(user==null){    
-    return <LoginScreen/>;
+  if (user == null) {
+    return <LoginScreen />;
   }
 
   return (
@@ -82,7 +96,9 @@ export default function App() {
             <Card.Title title="Coronavirus Situation" />
             <Card.Content>
               <Text>Your Phone Number: {user.phoneNumber}</Text>
-              <FlatList data={corona} renderItem={renderCorona} ></FlatList>
+              <FlatList data={corona}
+                renderItem={({ item }) => renderCorona(item, index, setCitem)} >
+              </FlatList>
             </Card.Content>
           </Card>
         </ScrollView>
